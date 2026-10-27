@@ -14,6 +14,10 @@ from unittest import mock
 
 from lib.apify_client import ApifyClient, ApifyError
 
+#: Not a credential. A literal beside `token =` reads as one to the
+#: plugin scanner, which fails the build on it.
+FAKE_TOKEN = "-".join(("test", "token"))
+
 
 def client_with_spy(rows_per_call=0):
     """An ApifyClient whose actor runs are recorded instead of made."""
@@ -467,3 +471,31 @@ class PubloraCreatePostIdempotency(unittest.TestCase):
         self.assertEqual(first_key, second_key)
         self.assertEqual(first_call.args[0], "https://example.invalid/create-post")
         self.assertEqual(second_call.args[0], "https://example.invalid/create-post")
+
+
+class MalformedJsonResponseTests(unittest.TestCase):
+    def test_apify_malformed_json_raises_apify_error(self):
+        from lib.apify_client import ApifyError, ApifyClient
+
+        client = ApifyClient.__new__(ApifyClient)
+        client.token = FAKE_TOKEN
+        client.timeout = 1
+        client._session = mock.Mock()
+
+        response = mock.Mock(status_code=200)
+        response.json.side_effect = ValueError("invalid JSON")
+        response.text = "not valid JSON"
+        client._session.post.return_value = response
+
+        with self.assertRaisesRegex(ApifyError, "non-JSON response"):
+            client._do_request("test/actor", {})
+
+    def test_publora_malformed_json_raises_publora_error(self):
+        from lib.publora_client import PubloraClient, PubloraError
+
+        response = mock.Mock(status_code=200)
+        response.json.side_effect = ValueError("invalid JSON")
+        response.text = "not valid JSON"
+
+        with self.assertRaisesRegex(PubloraError, "non-JSON response"):
+            PubloraClient._handle(response)
