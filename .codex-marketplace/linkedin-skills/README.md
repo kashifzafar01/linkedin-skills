@@ -281,6 +281,9 @@ Then open `.env` and replace the placeholders with your real values.
 pip install requests python-dotenv
 ```
 
+This needs **Python 3.10 or newer**. The macOS system Python (3.9) cannot install the
+pinned `python-dotenv`; use `brew install python@3.12` or any newer interpreter.
+
 **Step 7.** Test it. Ask Claude Code or Codex:
 
 > "Schedule a test LinkedIn post via Publora 24 hours from now: 'testing the API connection — will cancel in dashboard'."
